@@ -184,6 +184,13 @@ header{
 .key.correct{background:var(--accent);color:var(--accent-ink);}
 .key.present{background:var(--present);color:var(--present-ink);}
 .key.absent{background:var(--danger);color:#fff;}
+.wipe-row{margin-top:2px;}
+.key.wipe{
+  flex:0 1 auto;max-width:none;width:100%;height:38px;
+  background:transparent;border:1px solid var(--line);color:var(--ink-dim);
+  font-size:11.5px;font-weight:600;text-transform:none;letter-spacing:0.2px;gap:6px;
+}
+.key.wipe:active{background:var(--panel-2);}
 /* ===== toast ===== */
 .toast-wrap{
   position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);left:50%;transform:translateX(-50%);
@@ -304,8 +311,9 @@ header{
       <div class="row2"><div class="tile present" style="width:32px;height:32px;font-size:14px;flex-shrink:0;">A</div><span>2 toques — marca como certa, posição errada</span></div>
       <div class="row2"><div class="tile correct" style="width:32px;height:32px;font-size:14px;flex-shrink:0;">A</div><span>3 toques — marca como certa, posição certa</span></div>
     </div>
-    <p>O teclado se pinta sozinho seguindo suas marcações. Vermelho é definitivo — a letra some do jogo, então marcar uma ocorrência como vermelha já pinta todas as outras aparições dela e a tecla correspondente. Verde e amarelo dependem da posição, então se a mesma letra já foi marcada das duas formas em palpites diferentes, a tecla aparece pintada meio a meio.</p>
+    <p>O teclado se pinta sozinho seguindo suas marcações. Vermelho é definitivo — a letra some do jogo, então marcar uma ocorrência como vermelha já pinta todas as outras aparições dela e a tecla correspondente. Verde e amarelo dependem da posição, então se a mesma letra já foi marcada das duas formas em palpites diferentes, a tecla aparece pintada meio a meio — e, nesse caso, ela nunca vira vermelha, já que você já sabe que ela existe na palavra.</p>
     <p>Se um palpite não tiver nenhuma letra certa (nem verde, nem amarela), o jogo já pinta a linha inteira de vermelho pra você — não tem o que deduzir ali.</p>
+    <p>Errou uma pintura? Toque de novo na ficha até voltar ao neutro, ou use o botão 🧹 no teclado pra limpar todas as cores de uma vez — sem perder seus palpites.</p>
     <p>A palavra secreta nunca repete letras (e não usa K, W ou Y — as menos comuns no português), mas seu palpite pode ser qualquer palavra válida de 5 letras.</p>
   </div>
 </div>
@@ -513,16 +521,61 @@ header{
     if(r >= state.guesses.length) return; // só palpites já enviados podem ser pintados
     if(!state.paint) state.paint = makeEmptyPaint();
     if(!state.paint[r]) state.paint[r] = new Array(WORD_LEN).fill(0);
-    state.paint[r][c] = (state.paint[r][c] + 1) % 4; // 0 nada → 1 vermelho → 2 amarelo → 3 verde
+    var letter = state.guesses[r][c];
+    var cur = state.paint[r][c];
+    var newVal;
+    if(letterHasGY(letter)){
+      // a letra já foi marcada de verde/amarelo em algum lugar — verde e
+      // amarelo são contextuais (dependem da posição), então essa ficha
+      // cicla só entre amarelo → verde → neutro (nunca vermelho), pra
+      // ainda dar pra limpar essa marcação específica tocando de novo
+      newVal = (cur === 0) ? 2 : (cur === 2 ? 3 : 0);
+    } else {
+      newVal = (cur + 1) % 4; // 0 nada → 1 vermelho → 2 amarelo → 3 verde
+    }
+    state.paint[r][c] = newVal;
+    if(newVal === 2 || newVal === 3){
+      // essa letra passou a ter uma marca verde/amarela — limpa qualquer
+      // vermelho "órfão" que tenha ficado gravado em outra aparição dela,
+      // pra ele não reaparecer do nada se essa proteção for removida depois
+      for(var rr=0; rr<state.guesses.length; rr++){
+        var w = state.guesses[rr];
+        for(var cc=0; cc<WORD_LEN; cc++){
+          if(w[cc]===letter && state.paint[rr] && state.paint[rr][cc]===1){
+            state.paint[rr][cc] = 0;
+          }
+        }
+      }
+    }
     if(!practiceMode) save('game:'+diff, state);
     render();
   }
 
-  // vermelho é definitivo (a letra não existe na palavra), então qualquer
-  // aparição dessa letra em qualquer palpite — já enviado ou futuro —
-  // é tratada como vermelha automaticamente, mesmo que aquela ficha
-  // específica nunca tenha sido tocada.
+  function clearAllPaint(){
+    state.paint = makeEmptyPaint();
+    if(!practiceMode) save('game:'+diff, state);
+    render();
+  }
+
+  // verde e amarelo dependem da posição (uma letra pode ser verde numa
+  // linha e amarela em outra), então são "contextuais". vermelho é
+  // absoluto — a letra some do jogo inteiro — MAS só vale enquanto
+  // a letra nunca tiver sido marcada de verde/amarelo em lugar nenhum;
+  // isso tem prioridade e nunca é sobrescrito por um vermelho.
+  function letterHasGY(letter){
+    for(var r=0;r<state.guesses.length;r++){
+      var w = state.guesses[r];
+      for(var c=0;c<WORD_LEN;c++){
+        if(w[c]===letter){
+          var v = state.paint[r] && state.paint[r][c];
+          if(v===2 || v===3) return true;
+        }
+      }
+    }
+    return false;
+  }
   function letterIsRed(letter){
+    if(letterHasGY(letter)) return false;
     for(var r=0;r<state.guesses.length;r++){
       var w = state.guesses[r];
       for(var c=0;c<WORD_LEN;c++){
@@ -533,6 +586,10 @@ header{
   }
   function effectivePaint(r,c){
     var letter = state.guesses[r][c];
+    if(letterHasGY(letter)){
+      var v = (state.paint[r] && state.paint[r][c]) || 0;
+      return (v===2 || v===3) ? v : 0;
+    }
     if(letterIsRed(letter)) return 1;
     return (state.paint[r] && state.paint[r][c]) || 0;
   }
@@ -603,6 +660,14 @@ header{
       });
       kbEl.appendChild(row);
     });
+    var wipeRow = document.createElement('div');
+    wipeRow.className = 'krow wipe-row';
+    var wipeBtn = document.createElement('button');
+    wipeBtn.className = 'key wipe';
+    wipeBtn.innerHTML = '🧹 <span>Limpar cores</span>';
+    wipeBtn.addEventListener('click', function(){ clearAllPaint(); toast('Cores limpas'); });
+    wipeRow.appendChild(wipeBtn);
+    kbEl.appendChild(wipeRow);
   }
   buildKeyboard();
   function renderKeyboard(){
@@ -678,9 +743,14 @@ header{
     current = '';
 
     // se nenhuma das 5 letras existe na palavra, não há nada a deduzir —
-    // pinta a linha inteira de vermelho automaticamente (o oposto do acerto)
+    // pinta a linha inteira de vermelho automaticamente (o oposto do acerto).
+    // não mexe em letras que já estão protegidas por verde/amarelo, pra não
+    // deixar um vermelho "escondido" que reapareça se a proteção sumir depois
     if(tally.r === WORD_LEN){
-      state.paint[rowIdx] = new Array(WORD_LEN).fill(1);
+      var rowWord = state.guesses[rowIdx];
+      for(var ai=0; ai<WORD_LEN; ai++){
+        if(!letterHasGY(rowWord[ai])) state.paint[rowIdx][ai] = 1;
+      }
     }
 
     var justFinished = false;
