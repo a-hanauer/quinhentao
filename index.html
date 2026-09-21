@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QUINHENTÃO — o desafio de 5 letras</title>
+<meta name="description" content="Quinhentão: adivinhe a palavra de 5 letras. Diária, prática, três níveis de dificuldade.">
+<meta name="theme-color" content="#0d0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quinhentão">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef0e8;
+  --panel:#ffffff;
+  --panel-2:#e4e7dc;
+  --ink:#12140f;
+  --ink-dim:#5b6058;
+  --line:#c9cdbd;
+  --accent:#1f6f4a;
+  --accent-ink:#eafff2;
+  --present:#c98a1f;
+  --present-ink:#241800;
+  --absent:#8a9082;
+  --danger:#b23b2e;
+  --key-bg:#dfe3d5;
+  --key-ink:#12140f;
+  --radius:10px;
+  --font-display:'Chakra Petch',ui-monospace,monospace;
+  --font-body:'IBM Plex Sans',system-ui,sans-serif;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d0f12;
+    --panel:#161a17;
+    --panel-2:#1d211d;
+    --ink:#eef0e8;
+    --ink-dim:#9aa294;
+    --line:#2b312a;
+    --accent:#3fb87a;
+    --accent-ink:#04150c;
+    --present:#e0a83c;
+    --present-ink:#241800;
+    --absent:#3a3f38;
+    --key-bg:#252a24;
+    --key-ink:#eef0e8;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d0f12;
+  --panel:#161a17;
+  --panel-2:#1d211d;
+  --ink:#eef0e8;
+  --ink-dim:#9aa294;
+  --line:#2b312a;
+  --accent:#3fb87a;
+  --accent-ink:#04150c;
+  --present:#e0a83c;
+  --present-ink:#241800;
+  --absent:#3a3f38;
+  --key-bg:#252a24;
+  --key-ink:#eef0e8;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;overflow-x:hidden;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  flex-direction:column;
+  min-height:100%;
+}
+.app{
+  max-width:520px;
+  margin:0 auto;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  padding:0 14px;
+}
+/* ===== header ===== */
+header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 2px 8px;
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;flex-direction:column;gap:1px;}
+.brand .name{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:26px;
+  letter-spacing:0.5px;
+  line-height:1;
+  color:var(--ink);
+}
+.brand .name b{color:var(--accent);}
+.brand .tag{font-size:11px;color:var(--ink-dim);letter-spacing:0.2px;}
+.header-actions{display:flex;align-items:center;gap:12px;}
+.iconbtn{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid var(--line);
+  color:var(--ink);cursor:pointer;font-size:17px;
+}
+.iconbtn:hover{background:var(--panel-2);}
+.switch-wrap{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-dim);font-weight:500;white-space:nowrap;}
+.switch{
+  position:relative;width:38px;height:22px;border-radius:999px;background:var(--panel-2);
+  border:1px solid var(--line);cursor:pointer;flex-shrink:0;
+}
+.switch .knob{
+  position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:var(--ink-dim);transition:transform .15s ease, background .15s ease;
+}
+.switch.on{background:var(--accent);}
+.switch.on .knob{transform:translateX(16px);background:var(--accent-ink);}
+/* ===== board ===== */
+.board-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:6px 0;min-height:0;}
+.board{display:flex;flex-direction:column;gap:6px;width:100%;max-width:460px;}
+.row{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;}
+.tile{
+  aspect-ratio:1/1;border-radius:8px;border:2px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:clamp(16px,5vw,24px);
+  text-transform:uppercase;background:var(--panel);color:var(--ink);
+  transition:transform .1s ease, background .12s ease;
+}
+.tile.filled{border-color:var(--ink-dim);}
+.tile.paintable{cursor:pointer;}
+.tile.paintable:active{transform:scale(0.93);}
+.tile.correct{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.tile.present{background:var(--present);border-color:var(--present);color:var(--present-ink);}
+.tile.absent{background:var(--danger);border-color:var(--danger);color:#fff;}
+.count-cell{
+  aspect-ratio:1/1;border-radius:8px;border:2px solid transparent;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:clamp(16px,5vw,24px);
+}
+.count-cell.cg{background:var(--accent);color:var(--accent-ink);}
+.count-cell.cy{background:var(--present);color:var(--present-ink);}
+.count-cell.cr{background:var(--danger);color:#fff;}
+.row.pop .tile.filled,.row.pop .count-cell{animation:pop .28s ease;}
+@keyframes pop{
+  0%{transform:scale(0.85);opacity:0.4;}
+  100%{transform:scale(1);opacity:1;}
+}
+.row.shake{animation:shake .35s ease;}
+@keyframes shake{
+  10%,90%{transform:translateX(-2px);}
+  20%,80%{transform:translateX(4px);}
+  30%,50%,70%{transform:translateX(-7px);}
+  40%,60%{transform:translateX(7px);}
+}
+.row.bounce .tile{animation:bounce .5s ease;}
+@keyframes bounce{
+  0%,100%{transform:translateY(0);}
+  30%{transform:translateY(-16px);}
+  50%{transform:translateY(0);}
+}
+/* ===== keyboard ===== */
+.keyboard{display:flex;flex-direction:column;gap:6px;padding:8px 0 12px;user-select:none;}
+.krow{display:flex;gap:5px;justify-content:center;}
+.key{
+  flex:1;max-width:40px;height:46px;border-radius:6px;border:none;
+  background:var(--key-bg);color:var(--key-ink);font-family:var(--font-body);
+  font-weight:600;font-size:12.5px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-transform:uppercase;
+}
+.key.del{color:var(--ink-dim);}
+.key.enter{flex:1.7;max-width:72px;background:var(--ink);color:var(--bg);font-size:11.5px;letter-spacing:0.5px;}
+.key.used{background:var(--absent);color:var(--ink-dim);}
+.key.correct{background:var(--accent);color:var(--accent-ink);}
+.key.present{background:var(--present);color:var(--present-ink);}
+.key.absent{background:var(--danger);color:#fff;}
+/* ===== toast ===== */
+.toast-wrap{
+  position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);left:50%;transform:translateX(-50%);
+  z-index:60;display:flex;flex-direction:column;gap:6px;align-items:center;
+}
+.toast{
+  background:var(--ink);color:var(--bg);font-weight:600;font-size:13px;
+  padding:8px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);
+  animation:toastin .15s ease;
+}
+@keyframes toastin{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+/* ===== modal ===== */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;pointer-events:none;transition:opacity .15s ease;
+}
+.overlay.open{opacity:1;pointer-events:auto;}
+.modal{
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  max-width:400px;width:100%;max-height:85vh;overflow-y:auto;padding:20px;
+  transform:translateY(10px);transition:transform .15s ease;
+}
+.overlay.open .modal{transform:translateY(0);}
+.modal h2{
+  font-family:var(--font-display);font-size:19px;margin:0 0 12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal .close{background:none;border:none;color:var(--ink-dim);font-size:20px;cursor:pointer;line-height:1;}
+.modal p{font-size:13.5px;line-height:1.55;color:var(--ink-dim);margin:0 0 10px;}
+.modal b{color:var(--ink);}
+.legend{display:flex;flex-direction:column;gap:8px;margin:14px 0;}
+.legend .row2{display:flex;align-items:center;gap:10px;}
+.legend .tile{width:32px;height:32px;font-size:14px;flex-shrink:0;}
+.legend span{font-size:13px;color:var(--ink-dim);}
+/* stats modal */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.stat{text-align:center;}
+.stat .n{font-family:var(--font-display);font-size:26px;font-weight:700;}
+.stat .l{font-size:9.5px;color:var(--ink-dim);letter-spacing:.5px;margin-top:2px;}
+.dist-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px;}
+.dist-row .n{width:12px;font-family:var(--font-display);color:var(--ink-dim);}
+.dist-row .bar-wrap{flex:1;background:var(--panel-2);border-radius:4px;overflow:hidden;}
+.dist-row .bar{
+  background:var(--absent);color:var(--ink);font-weight:700;font-size:11.5px;
+  padding:3px 7px;min-width:22px;text-align:right;border-radius:4px;
+}
+.dist-row.win .bar{background:var(--accent);color:var(--accent-ink);}
+.share-row{display:flex;gap:8px;margin-top:16px;}
+.btn{
+  flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;
+  padding:11px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:var(--font-body);
+}
+.btn.secondary{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);}
+.countdown{text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+.countdown .l{font-size:11px;color:var(--ink-dim);}
+.countdown .t{font-family:var(--font-display);font-size:22px;font-weight:700;margin-top:2px;}
+/* settings */
+.opt-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);}
+.opt-row:last-child{border-bottom:none;}
+.opt-row .t{font-size:13.5px;font-weight:600;}
+.opt-row .s{font-size:11.5px;color:var(--ink-dim);}
+.seg{display:flex;background:var(--panel-2);border-radius:8px;padding:2px;border:1px solid var(--line);}
+.seg button{
+  border:none;background:transparent;color:var(--ink-dim);font-size:11.5px;font-weight:600;
+  padding:6px 10px;border-radius:6px;cursor:pointer;font-family:var(--font-body);
+}
+.seg button.active{background:var(--accent);color:var(--accent-ink);}
+.linkbtn{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;padding:10px 0;text-align:left;}
+@media (max-width:340px){
+  .key{height:42px;}
+  .tile{font-size:18px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="name">QUINHENT<b>Ã</b>O</div>
+      <div class="tag">acerte a palavra de 5 letras</div>
+    </div>
+    <div class="header-actions">
+      <div class="switch-wrap">
+        <span>Jogo livre</span>
+        <div class="switch" id="mode-switch"><div class="knob"></div></div>
+      </div>
+      <button class="iconbtn" id="btn-stats" title="Estatísticas" aria-label="Estatísticas">📊</button>
+      <button class="iconbtn" id="btn-settings" title="Configurações" aria-label="Configurações">⚙️</button>
+    </div>
+  </header>
+
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="keyboard" id="keyboard"></div>
+
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- Como jogar -->
+<div class="overlay" id="overlay-help">
+  <div class="modal">
+    <h2>Como jogar<button class="close" data-close="overlay-help">✕</button></h2>
+    <p>Adivinhe a palavra secreta de <b>5 letras</b> em até <b>8 tentativas</b>.</p>
+    <p>Depois de cada palpite, o jogo <b>não</b> mostra quais letras estão certas — só a <b>quantidade</b> de cada tipo, nas 3 colunas ao lado do palpite:</p>
+    <div class="legend">
+      <div class="row2"><div class="count-cell cg" style="width:32px;height:32px;font-size:14px;flex-shrink:0;">2</div><span>Quantas letras estão na posição certa</span></div>
+      <div class="row2"><div class="count-cell cy" style="width:32px;height:32px;font-size:14px;flex-shrink:0;">1</div><span>Quantas letras existem, mas na posição errada</span></div>
+      <div class="row2"><div class="count-cell cr" style="width:32px;height:32px;font-size:14px;flex-shrink:0;">2</div><span>Quantas letras não existem na palavra</span></div>
+    </div>
+    <p>É com você <b>descobrir quais</b> letras são quais. Toque numa letra do seu palpite pra pintá-la e ajudar a raciocinar:</p>
+    <div class="legend">
+      <div class="row2"><div class="tile absent" style="width:32px;height:32px;font-size:14px;flex-shrink:0;">A</div><span>1 toque — marca como descartada</span></div>
+      <div class="row2"><div class="tile present" style="width:32px;height:32px;font-size:14px;flex-shrink:0;">A</div><span>2 toques — marca como certa, posição errada</span></div>
+      <div class="row2"><div class="tile correct" style="width:32px;height:32px;font-size:14px;flex-shrink:0;">A</div><span>3 toques — marca como certa, posição certa</span></div>
+    </div>
+    <p>O teclado se pinta sozinho seguindo suas marcações. Vermelho é definitivo — a letra some do jogo, então marcar uma ocorrência como vermelha já pinta todas as outras aparições dela e a tecla correspondente. Verde e amarelo dependem da posição, então se a mesma letra já foi marcada das duas formas em palpites diferentes, a tecla aparece pintada meio a meio.</p>
+    <p>Se um palpite não tiver nenhuma letra certa (nem verde, nem amarela), o jogo já pinta a linha inteira de vermelho pra você — não tem o que deduzir ali.</p>
+    <p>A palavra secreta nunca repete letras (e não usa K, W ou Y — as menos comuns no português), mas seu palpite pode ser qualquer palavra válida de 5 letras.</p>
+  </div>
+</div>
+
+<!-- Estatísticas -->
+<div class="overlay" id="overlay-stats">
+  <div class="modal">
+    <h2>Estatísticas<button class="close" data-close="overlay-stats">✕</button></h2>
+    <div class="stat-grid">
+      <div class="stat"><div class="n" id="s-played">0</div><div class="l">JOGADAS</div></div>
+      <div class="stat"><div class="n" id="s-winpct">0%</div><div class="l">VITÓRIAS</div></div>
+      <div class="stat"><div class="n" id="s-streak">0</div><div class="l">SEQUÊNCIA</div></div>
+      <div class="stat"><div class="n" id="s-maxstreak">0</div><div class="l">MELHOR SEQ.</div></div>
+    </div>
+    <div id="s-dist"></div>
+    <div class="share-row" id="s-share-row" style="display:none;">
+      <button class="btn" id="btn-share">Compartilhar resultado</button>
+    </div>
+    <div class="countdown" id="s-countdown" style="display:none;">
+      <div class="l">PRÓXIMO QUINHENTÃO EM</div>
+      <div class="t" id="countdown-time">--:--:--</div>
+    </div>
+  </div>
+</div>
+
+<!-- Configurações -->
+<div class="overlay" id="overlay-settings">
+  <div class="modal">
+    <h2>Configurações<button class="close" data-close="overlay-settings">✕</button></h2>
+    <div class="opt-row">
+      <div><div class="t">Tema</div><div class="s">Automático segue o sistema</div></div>
+      <div class="seg" id="theme-seg">
+        <button data-theme="auto" class="active">Auto</button>
+        <button data-theme="light">Claro</button>
+        <button data-theme="dark">Escuro</button>
+      </div>
+    </div>
+    <div class="opt-row" style="flex-direction:column;align-items:flex-start;">
+      <button class="linkbtn" id="btn-help">Como jogar</button>
+      <button class="linkbtn" id="btn-restart" style="color:var(--danger);">Reiniciar palavra atual</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fim de jogo -->
+<div class="overlay" id="overlay-end">
+  <div class="modal">
+    <h2 id="end-title">Boa!<button class="close" data-close="overlay-end">✕</button></h2>
+    <p id="end-sub"></p>
+    <div class="stat-grid">
+      <div class="stat"><div class="n" id="e-played">0</div><div class="l">JOGADAS</div></div>
+      <div class="stat"><div class="n" id="e-winpct">0%</div><div class="l">VITÓRIAS</div></div>
+      <div class="stat"><div class="n" id="e-streak">0</div><div class="l">SEQUÊNCIA</div></div>
+      <div class="stat"><div class="n" id="e-maxstreak">0</div><div class="l">MELHOR SEQ.</div></div>
+    </div>
+    <div id="e-dist"></div>
+    <div class="share-row">
+      <button class="btn" id="btn-share2">Compartilhar resultado</button>
+    </div>
+    <div class="countdown" id="e-countdown" style="display:none;">
+      <div class="l">PRÓXIMO QUINHENTÃO EM</div>
+      <div class="t" id="countdown-time2">--:--:--</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ DICIONÁRIO ============ */
+  var ALL_WORDS = ["abaco","abada","abade","abala","abalo","abara","abate","abito","abono","abril","abrir","abuso","acara","acari","acaro","acaso","acesa","aceso","achar","acido","acima","acola","adega","adere","adiar","adido","adira","adito","adubo","adule","advem","advir","aereo","afago","afear","afere","afeto","afixo","afora","agape","agata","agora","aguar","agudo","aguia","ainda","aipim","ajuda","alado","alafe","alago","alamo","albor","album","aleia","aleta","algia","algoz","algum","algur","aliar","alibi","alime","alise","alive","altar","alter","alude","alula","aluno","alveo","alvor","alçar","amada","amado","amago","amala","amara","amaro","ambar","ameba","amela","amelo","amena","ameno","amiga","amigo","amore","ampla","amplo","ancia","andar","andre","anelo","anexa","anexo","anima","animo","anote","ansia","antro","anual","anuir","anzol","aonde","apara","apear","apego","apelo","apice","apito","apode","apoia","apoio","aporo","apuro","aquem","arabe","arado","araia","arara","araça","arcar","arche","arder","ardil","ardor","arduo","areal","arear","areia","areio","arena","arere","arfar","arido","aroma","arpao","arque","arroz","artur","asilo","assar","assaz","assim","aster","astro","atado","atear","ateia","atico","atimo","ativa","ativo","atiça","atomo","atono","atora","atoto","atril","atrio","atriz","atroz","atual","atuar","audaz","audio","aurea","aureo","aurir","autor","avaro","avela","aviao","aviar","avida","avido","aviso","avoar","axial","axila","azedo","azimo","açude","babao","babar","bacia","bacon","bagua","bahia","baiao","baila","baile","baita","baixa","baixo","balao","balda","balde","balir","balsa","balso","bamba","bambu","banal","banca","banco","banda","bando","banho","banir","banto","banze","banzo","baoba","baque","barao","barba","barco","bardo","baroa","barra","barro","basal","basta","batel","bater","batom","bazar","beaba","beata","beato","beber","bedel","beija","beijo","beira","beiço","bença","beque","berma","berro","berço","bessa","besta","bicha","bicho","bidao","bilha","bilro","bioco","bioma","biose","birra","bisao","bisel","bispo","blase","blefe","blitz","bloco","blusa","boate","boato","boina","bolao","bolha","bolor","bolsa","bolso","bomba","bonde","borda","bordo","borla","borra","bossa","bosta","botao","botar","boçal","brabo","brado","brasa","brava","bravo","braço","break","brega","brejo","breve","briba","brida","briga","brisa","brita","briza","broca","broto","bruma","bruta","bruto","bruxa","bucha","bucho","bufao","bufar","bugre","bujao","bulbo","bulha","bulir","buque","burgo","buril","burla","burra","burro","busca","busto","cabal","caber","cabra","cacho","cacto","caiar","caibo","caixa","calao","calda","calha","calix","calma","calmo","calom","calor","calvo","calça","campa","campo","canal","canil","canon","canso","canto","capao","capaz","caput","caqui","carao","cardo","carga","cargo","carie","cariz","carma","carre","carro","carta","casal","casao","casar","casca","casta","casto","catao","catar","catre","cauda","causa","causo","caçao","caçar","ceara","ceder","cedro","ceifa","ceita","celta","cenho","censo","cento","cerca","cerio","cerne","cerol","cerro","certa","certo","cervo","cesta","cesto","cetro","chaga","chale","chalo","chama","chapa","chata","chato","chave","chefe","chega","cheia","cheio","chiar","chiba","chiru","chita","choro","choça","chula","chulo","chute","chuva","ciclo","cidra","cifra","cinta","cinto","cinza","cioso","cirio","cisao","cisco","cisma","citar","citro","ciume","civel","civil","clara","claro","clava","clean","clero","clima","close","coach","cobra","cobre","cobro","cocar","coche","cocho","cocre","coesa","coeso","coevo","cofre","coisa","coito","combo","comer","comum","conta","conto","copia","coral","corar","corba","corja","coroa","corpo","corra","corro","corso","corte","corvo","coser","cosmo","costa","cotar","couro","cousa","couve","cover","covil","cozer","crase","cravo","credo","creme","crepe","criar","crica","crico","crido","crime","crina","crise","crivo","croma","cromo","crono","cruel","crush","cuica","cuite","culpa","culto","cunha","cunho","cupao","curar","curau","curia","curio","curso","curta","curto","custa","custo","dador","dalem","dalia","danar","dance","danda","dandi","dante","dança","daqui","dardo","dario","darma","datal","datar","daçao","debil","decho","decor","dedal","dedao","deita","deixa","delay","delir","delta","demao","dende","dendo","dengo","densa","denso","dente","depor","depre","deque","deram","derbi","derby","derma","derme","desar","desce","desde","dessa","desse","desta","deste","detem","deter","deusa","dever","devir","diabo","diade","dieta","digna","digno","dinda","dingo","diogo","dique","disco","disso","disto","ditar","dizer","diçao","doado","dobar","doble","dobra","dobre","dobro","docil","dodoi","dogma","doida","doido","dolar","dolce","dolma","dolor","domar","donde","dopar","doque","doria","dorio","dorso","dosar","dotar","doudo","doula","douto","draga","drama","dreno","drink","drive","droga","dromo","drone","drupa","dubio","duble","ducha","ducto","duelo","dueto","dunga","dupla","duplo","duque","durao","durar","duzia","ebano","ebrio","ecoar","ecran","edito","egide","eivar","elena","elite","enfim","entao","entre","epico","epoca","ereto","erica","errar","erval","escol","esgar","espia","esqui","estao","estar","estil","estio","estro","etapa","etica","etico","etnia","exame","exato","exito","exodo","expor","extra","facho","facil","facto","faina","faixa","falar","falca","falha","falso","falta","fanal","fanha","farao","fardo","farei","farol","farra","farsa","farta","farto","fatal","fator","fatuo","faula","fauna","favor","fazer","façam","façao","febeu","febra","febre","fecal","fecer","fecha","fecho","feder","fedor","feiao","feila","feira","feita","feito","feixe","feleu","felga","feliz","felpa","felpo","fenar","fenda","fenil","fenol","fento","feral","feraz","ferga","feria","ferir","feroz","ferpa","ferra","ferro","ferry","ferto","festa","festo","fetal","feudo","fevra","fiada","fiado","fiapo","fibra","ficar","ficha","ficto","fieza","figle","filao","filar","filha","filho","filme","fimbo","final","finar","finca","finco","finda","findo","finjo","finta","finto","fiota","fiote","fique","firma","firme","fisco","fisga","fisgo","fitao","fitar","fitol","fiusa","fiuza","fixar","flora","fluir","fluxo","fobia","fogao","folga","folha","fonte","forem","forma","forra","forro","forte","forum","força","fosco","fosse","fosso","fraco","frade","frase","frear","frege","freio","freme","fresa","frete","frevo","frila","frisa","friso","frita","frito","front","frota","fruir","fruta","fruto","fugaz","fugir","fugiu","fujao","fulao","fular","fundo","furia","furor","furta","furto","fusao","fuste","futil","gabao","gabar","gaita","gajao","galao","galga","galgo","galha","galho","galio","gamao","gamar","gamba","ganga","ganha","ganho","ganir","ganja","ganso","garbo","garfo","garoa","garra","garça","garço","gasto","gatao","gatil","gavar","gavea","gazua","geada","geena","gemea","gemeo","gemer","genio","genra","genro","gente","geral","gerar","gerir","germe","gesso","gesta","gesto","gibao","gicle","ginga","ginge","giota","girar","giria","girio","gizar","glace","gleba","glifo","globo","glosa","glote","gnomo","gnose","goela","gofer","golfe","golfo","golga","golpe","gongo","gonzo","gorar","gorda","gordo","gorja","gorro","gosma","gosto","graal","grade","grado","grafo","grama","grana","grata","grato","grave","graxa","graxo","graça","greda","grega","grego","grena","greta","greve","grifa","grife","grifo","grill","grilo","gripe","grita","grito","groja","grosa","grota","grude","grumo","grupo","gruta","guapo","guara","guaxo","guaçu","gueba","gueto","guiao","guiar","guine","guisa","guita","guizo","guria","habil","hajam","hansa","harem","harpa","hasta","haste","haver","helia","hepta","heroi","hiato","hidro","hiena","hifen","hiper","hirto","hobby","homem","honra","horda","horta","horto","hoste","hotel","humor","iaque","ibero","ibope","icaro","icone","ideal","ideia","idolo","idoso","igneo","igual","ileso","impar","impio","impor","imune","inata","inato","indio","infra","inter","intra","irado","irmao","janta","jarro","jazer","jeito","jejum","jeova","jirau","jogao","jogar","jorro","jovem","judeu","juizo","julia","junco","junta","junto","jurar","justa","justo","kalio","krill","kyrie","labia","labil","labio","labor","lacao","laico","lança","lapao","lapis","lapso","lareu","largo","lasso","latao","latex","laudo","laura","lauto","lavar","lavra","laxar","lazer","lebre","legal","legao","legua","leigo","leira","leite","leito","lenda","lenho","lente","lento","lepra","leria","lerna","lesao","leste","lesto","letal","letao","letra","levar","lhano","liame","libio","licor","lidar","lider","lidio","ligar","light","limao","limbo","linda","lindo","linfa","linha","liria","lirio","lista","litio","litro","livia","livre","livro","liçao","local","logia","logro","loira","loiro","lombo","longa","longe","longo","louco","louro","louça","luada","lucro","lugar","lunar","luria","lutar","luteo","macho","macio","macro","madre","mafia","mafua","magia","magna","magno","magoa","magro","maior","maita","malha","malsa","malta","mamae","mamao","manco","manga","manha","manso","manta","manto","maori","marco","maria","mario","marua","massa","matar","mater","matiz","mecha","medir","meiga","meigo","melao","melgo","melia","meloa","melro","mente","mento","merce","mesma","mesmo","messe","metal","meter","metie","metro","mexer","micha","miche","micra","micro","midia","milha","milho","minar","mingo","minha","mirar","mirim","mirra","mirto","mista","misto","mocho","moita","molde","molhe","molho","monge","monta","monte","moral","morao","morar","moria","morro","morte","morto","mosto","motel","motim","moura","mouro","movel","mover","moçao","mudar","muita","muito","mulei","multa","mundo","murro","murta","museu","mutua","mutuo","nacar","nagua","nariz","natal","nauta","navio","naçao","necro","negar","negra","negro","nenem","nervo","nesga","nesta","neste","neuro","nicho","ninho","nique","nisso","nisto","nitro","nivel","nobre","nodal","nodoa","noite","noria","norma","norte","nossa","nosso","notar","noçao","nunca","nuvem","oasis","obice","obito","obolo","obtem","obter","obvio","ocaso","odiar","oeste","oitao","olaia","olhar","ombro","omega","omite","ontem","opaco","optar","opçao","orate","ordem","orfao","orgao","orion","orixa","ornar","otica","otimo","otite","outra","outro","ouvir","oxala","oxido","pacto","padre","pagao","pagar","paiol","paira","pajem","paleo","palha","palio","palma","papai","papel","parar","parca","parco","pardo","parea","pareo","paria","pario","parir","parte","parva","parvo","pasma","pasmo","passa","passe","passo","pasta","pasto","patio","patua","paura","pauta","pavao","pavio","pavor","pecar","pecha","pedir","pedra","pedro","pegar","peita","peito","peixe","pejar","pelar","penca","penha","penso","penta","pente","perca","perco","perda","perro","perto","perua","pesar","peste","piada","piado","piaga","piara","piche","picua","pidao","piela","pifao","pifio","pilao","pilar","pilha","pinho","pinto","pique","pirao","pirua","pisao","pisar","pista","pitao","piteu","pizza","plaga","plano","plato","plebe","plena","pleno","pluma","plumo","pobre","podar","poder","podio","podre","poema","poeta","poial","polir","polpa","pomar","pompa","pondo","ponha","ponta","ponte","ponto","porao","porca","porem","porre","porro","porta","porte","porto","poser","possa","posse","posta","poste","posto","potra","potro","pouca","pouco","poçao","prado","praga","praia","prata","prato","praxe","prazo","praça","prece","prega","prego","preia","prelo","presa","preso","preta","preto","preço","prima","prime","primo","prior","prise","priva","prive","probo","prole","prosa","proto","prova","prove","prumo","psico","puder","pudor","pugna","puido","pular","pulha","pulso","punha","punho","puxao","puxar","quase","queda","queri","queto","quite","quiui","quiça","quota","racha","racio","radar","radia","radio","raiar","raiva","ralar","ramal","rampa","range","rango","ranho","ranço","rapar","rapaz","rapel","rapto","raque","rasao","rasgo","rasto","ratio","razao","razia","raçao","reaça","rebel","recem","recto","recua","recuo","redea","redia","redil","redor","refem","refez","refil","regal","regar","regem","reger","regia","regio","regra","regua","reide","reino","relar","relax","reler","relha","relho","relva","remar","remir","renal","renda","rengo","rente","repor","repto","resma","reste","resto","retem","reter","retro","reuna","reuso","revel","rever","revir","rezar","ricto","rifao","rifar","rifle","rigor","rimar","rimel","rinha","risca","risco","riste","ritmo","rival","rocha","rocim","rocio","rodar","rogar","rojao","rolar","rombo","ronda","rondo","ronha","rosca","roseo","rosto","roubo","rouca","rouco","round","roupa","roçar","rubor","rubro","rudez","ruela","rufar","rugir","ruido","ruina","ruivo","rular","rumar","rumor","rural","rusga","russo","sabao","saber","sabia","sabio","sabor","sabre","sacal","sacar","sache","sacro","sadio","safar","safra","sagaz","saiba","saida","saira","salao","saldo","salmo","salto","salva","salve","salvo","samba","sanar","sanha","santo","saque","sarar","sarau","sarro","sarue","sarça","sauda","saude","saudo","sauva","scopo","seara","secar","sedar","sedia","segar","segue","seita","seiva","seixo","selar","selva","senao","senda","sendo","senil","senso","sente","sento","sepia","serao","serie","serio","serra","serva","servo","sesta","setor","sexta","sexto","sezao","seçao","sheik","short","siclo","sidra","sifao","sigla","sigma","signo","silte","silvo","simel","simio","sinal","sinha","sirga","siria","sirio","sitio","skate","sobra","sobre","socio","sofia","sogro","solar","soldo","solho","solta","solto","somar","sonda","sonho","sonsa","sonso","sopro","soror","sorte","sosia","sotao","souto","staff","stand","suado","suave","subir","sucia","sugar","suino","suite","sulco","sumir","super","supor","supra","surdo","surja","surra","surto","sussa","susto","sutia","sutil","swing","tabua","tacao","tacar","tacha","tacho","taipa","talao","talar","talha","talhe","talho","tamil","tanga","tange","tanso","tanto","tapar","tarde","tardo","tarja","tasca","tatil","taura","taxar","tchau","tecer","tecno","tedio","teiga","teima","teixo","telex","telha","telio","temer","temor","tempo","tenaz","tenda","tende","tendo","tenha","tenis","tenor","tenra","tenro","tensa","tenso","tenta","tente","tento","tenue","tença","teria","terio","termo","terno","terra","terso","terça","terço","tesar","tesla","testa","teste","testo","tetra","teuto","texto","tibio","tiete","tigre","tilar","timao","timbo","tinir","tinta","tirar","tisna","titia","tiver","tiçao","toada","tocar","tocha","tomar","tombo","tongo","tonto","topar","toque","toral","torax","toria","torio","torna","torno","torpe","torre","torso","torto","torvo","torço","tosar","tosco","tosse","total","totem","touro","trace","traga","trago","trair","traje","trama","trapo","trara","trato","trava","trave","travo","traça","traço","treco","trela","trema","trena","treno","treta","treva","trevo","treze","triar","tribo","trica","trico","trigo","trilo","trino","tripa","tripe","trito","troar","troca","troco","troia","trono","tropa","tropo","trote","trova","truao","trupe","truta","tufao","tuite","tulha","tumba","tunel","turba","turco","turma","turno","turva","turvo","tutor","uaura","ubere","ubuçu","ultra","umaua","umbra","umero","uniao","unico","untar","unçao","urdir","urgir","urina","uruba","urubu","usado","usina","usual","usura","utero","vacuo","vadio","vagao","vagar","vagir","valao","valer","valha","valho","valia","valor","vante","varal","varao","varar","varia","vario","varoa","vasta","vasto","vazao","vazia","vazio","vedar","velar","velha","velho","veloz","venal","vendo","venha","venho","venia","vento","verao","veraz","verba","verbo","verde","veril","verso","verve","veste","vetar","vetor","vexar","vicio","video","vidro","viger","vigia","vigor","vilao","vinho","vinte","viram","virao","virar","viril","virus","visao","visar","visgo","vista","visto","vital","vivaz","viver","voila","volta","volte","volto","voraz","vosso","votar","vulgo","vulto","xarel","xaxim","xeque","xerox","xibiu","xicra","xiita","xisto","xucro","zebra","zebro","zelar","zibro","zinco","zonar","zonzo","zorao","zorra","zumba","zumbi","zunir","zurro"];
+  var WORDSET = {};
+  for(var wi=0; wi<ALL_WORDS.length; wi++){ WORDSET[ALL_WORDS[wi]] = true; }
+
+  function uniqueLetters(w){ return new Set(w.split('')).size === w.length; }
+  var RARE = {k:1,w:1,y:1};
+  function hasRare(w){ for(var i=0;i<w.length;i++){ if(RARE[w[i]]) return true; } return false; }
+
+  var POOLS = {
+    padrao: ALL_WORDS.filter(function(w){ return uniqueLetters(w) && !hasRare(w); })
+  };
+
+  /* ============ ESTADO ============ */
+  var MAX_TRIES = 8;
+  var WORD_LEN = 5;
+  var EPOCH = new Date(2024,0,1).getTime(); // dia 0
+  var LS_PREFIX = 'quinhentao:';
+
+  var diff = 'padrao';
+  var practiceMode = load('practice', false);
+  var theme = load('theme', 'auto');
+
+  var state = null; // jogo atual
+
+  function load(key, def){
+    try{
+      var v = localStorage.getItem(LS_PREFIX+key);
+      if(v===null) return def;
+      return JSON.parse(v);
+    }catch(e){ return def; }
+  }
+  function save(key, val){
+    try{ localStorage.setItem(LS_PREFIX+key, JSON.stringify(val)); }catch(e){}
+  }
+
+  function todayIndexFor(pool){
+    var days = Math.floor((startOfDay(new Date()).getTime() - EPOCH) / 86400000);
+    return ((days % pool.length) + pool.length) % pool.length;
+  }
+  function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function dayNumberFor(pool){
+    var days = Math.floor((startOfDay(new Date()).getTime() - EPOCH) / 86400000);
+    return days + 1;
+  }
+
+  function newGame(newPractice){
+    practiceMode = newPractice !== undefined ? newPractice : practiceMode;
+    save('practice', practiceMode);
+
+    var pool = POOLS[diff];
+    var secret, secretIdx;
+    if(practiceMode){
+      secretIdx = Math.floor(Math.random()*pool.length);
+      secret = pool[secretIdx];
+    } else {
+      secretIdx = todayIndexFor(pool);
+      secret = pool[secretIdx];
+    }
+
+    var saved = !practiceMode ? load('game:'+diff, null) : null;
+    var dayNum = dayNumberFor(pool);
+    if(saved && saved.dayNum === dayNum && saved.secret === secret){
+      state = saved;
+      if(!state.paint) state.paint = makeEmptyPaint();
+      if(!state.tallies) state.tallies = [];
+      if(state.won) revealAllPaint();
+    } else {
+      state = {
+        diff: diff, practice: practiceMode, secret: secret, dayNum: dayNum,
+        guesses: [], statuses: [], tallies: [], paint: makeEmptyPaint(),
+        finished:false, won:false
+      };
+      if(!practiceMode) save('game:'+diff, state);
+    }
+    render();
+    if(state.finished && !practiceMode){
+      setTimeout(function(){ openEndModal(); }, 300);
+    }
+  }
+
+  function makeEmptyPaint(){
+    var arr=[];
+    for(var i=0;i<MAX_TRIES;i++) arr.push(new Array(WORD_LEN).fill(0));
+    return arr;
+  }
+
+  /* ============ AVALIAÇÃO DE PALPITE (uso interno — nunca exibida letra a letra) ============ */
+  function evaluate(guess, secret){
+    var result = new Array(WORD_LEN).fill('absent');
+    var secretArr = secret.split('');
+    var used = new Array(WORD_LEN).fill(false);
+    var i, j;
+    for(i=0;i<WORD_LEN;i++){
+      if(guess[i]===secretArr[i]){ result[i]='correct'; used[i]=true; }
+    }
+    for(i=0;i<WORD_LEN;i++){
+      if(result[i]==='correct') continue;
+      for(j=0;j<WORD_LEN;j++){
+        if(!used[j] && secretArr[j]===guess[i]){
+          result[i]='present'; used[j]=true; break;
+        }
+      }
+    }
+    return result;
+  }
+
+  /* ============ RENDER TABULEIRO ============ */
+  var boardEl = document.getElementById('board');
+  var current = ''; // linha em digitação
+
+  function buildBoard(){
+    boardEl.innerHTML = '';
+    for(let r=0;r<MAX_TRIES;r++){
+      let row = document.createElement('div');
+      row.className='row'; row.id='row-'+r;
+      for(let c=0;c<WORD_LEN;c++){
+        let t = document.createElement('div');
+        t.className='tile'; t.id='tile-'+r+'-'+c;
+        t.addEventListener('click', function(){ paintTile(r,c); });
+        row.appendChild(t);
+      }
+      ['g','y','r'].forEach(function(type){
+        var cell = document.createElement('div');
+        cell.className = 'count-cell c'+type;
+        cell.id = 'count-'+r+'-'+type;
+        row.appendChild(cell);
+      });
+      boardEl.appendChild(row);
+    }
+  }
+  buildBoard();
+
+  function paintTile(r,c){
+    if(r >= state.guesses.length) return; // só palpites já enviados podem ser pintados
+    if(!state.paint) state.paint = makeEmptyPaint();
+    if(!state.paint[r]) state.paint[r] = new Array(WORD_LEN).fill(0);
+    state.paint[r][c] = (state.paint[r][c] + 1) % 4; // 0 nada → 1 vermelho → 2 amarelo → 3 verde
+    if(!practiceMode) save('game:'+diff, state);
+    render();
+  }
+
+  // vermelho é definitivo (a letra não existe na palavra), então qualquer
+  // aparição dessa letra em qualquer palpite — já enviado ou futuro —
+  // é tratada como vermelha automaticamente, mesmo que aquela ficha
+  // específica nunca tenha sido tocada.
+  function letterIsRed(letter){
+    for(var r=0;r<state.guesses.length;r++){
+      var w = state.guesses[r];
+      for(var c=0;c<WORD_LEN;c++){
+        if(w[c]===letter && state.paint[r] && state.paint[r][c]===1) return true;
+      }
+    }
+    return false;
+  }
+  function effectivePaint(r,c){
+    var letter = state.guesses[r][c];
+    if(letterIsRed(letter)) return 1;
+    return (state.paint[r] && state.paint[r][c]) || 0;
+  }
+
+  function paintClass(p){
+    return p===1?'absent':(p===2?'present':(p===3?'correct':''));
+  }
+
+  function statusToPaint(s){
+    return s==='correct'?3:(s==='present'?2:1);
+  }
+  function revealAllPaint(){
+    for(var r=0;r<state.guesses.length;r++){
+      state.paint[r] = state.statuses[r].map(statusToPaint);
+    }
+  }
+
+  function render(){
+    for(var r=0;r<MAX_TRIES;r++){
+      var submitted = r < state.guesses.length;
+      var word = submitted ? state.guesses[r] : null;
+      for(var c=0;c<WORD_LEN;c++){
+        var t = document.getElementById('tile-'+r+'-'+c);
+        if(submitted){
+          t.textContent = word[c];
+          var p = effectivePaint(r,c);
+          t.className = 'tile filled paintable ' + paintClass(p);
+        } else if(r===state.guesses.length && c<current.length){
+          t.textContent = current[c];
+          t.className = 'tile filled';
+        } else {
+          t.textContent = '';
+          t.className = 'tile';
+        }
+      }
+      var tally = submitted ? state.tallies[r] : null;
+      document.getElementById('count-'+r+'-g').textContent = tally ? tally.g : '';
+      document.getElementById('count-'+r+'-y').textContent = tally ? tally.y : '';
+      document.getElementById('count-'+r+'-r').textContent = tally ? tally.r : '';
+    }
+    renderKeyboard();
+    updateSwitch();
+  }
+
+  function updateSwitch(){
+    var sw = document.getElementById('mode-switch');
+    sw.classList.toggle('on', practiceMode);
+  }
+
+  /* ============ TECLADO ============ */
+  var ROWS = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l','⌫'],
+    ['z','x','c','v','b','n','m','ç','ENTER']
+  ];
+  var kbEl = document.getElementById('keyboard');
+  function buildKeyboard(){
+    kbEl.innerHTML='';
+    ROWS.forEach(function(rowKeys){
+      var row = document.createElement('div'); row.className='krow';
+      rowKeys.forEach(function(k){
+        var b = document.createElement('button');
+        b.className = 'key'+(k==='ENTER'?' enter':(k==='⌫'?' del':''));
+        b.textContent = k==='ENTER' ? 'ENTER' : k;
+        b.dataset.key = k;
+        b.addEventListener('click', function(){ handleKey(this.dataset.key); });
+        row.appendChild(b);
+      });
+      kbEl.appendChild(row);
+    });
+  }
+  buildKeyboard();
+  function renderKeyboard(){
+    var mapG = {}, mapY = {}, mapR = {}, used = {};
+    for(var r=0;r<state.guesses.length;r++){
+      var word = state.guesses[r];
+      for(var c=0;c<WORD_LEN;c++){
+        var letter = word[c];
+        used[letter] = true;
+        if(letterIsRed(letter)){ mapR[letter]=true; continue; }
+        var p = (state.paint[r] && state.paint[r][c]) || 0;
+        if(p===2) mapY[letter]=true;
+        else if(p===3) mapG[letter]=true;
+      }
+    }
+    var btns = kbEl.querySelectorAll('.key');
+    btns.forEach(function(b){
+      var k = b.dataset.key;
+      b.classList.remove('correct','present','absent','used','split');
+      b.style.background=''; b.style.color=''; b.style.textShadow='';
+      if(mapR[k]){
+        b.classList.add('absent');
+      } else if(mapG[k] && mapY[k]){
+        b.classList.add('split');
+        b.style.background = 'linear-gradient(135deg, var(--accent) 50%, var(--present) 50%)';
+        b.style.color = '#fff';
+        b.style.textShadow = '0 1px 1px rgba(0,0,0,.35)';
+      } else if(mapG[k]){
+        b.classList.add('correct');
+      } else if(mapY[k]){
+        b.classList.add('present');
+      } else if(used[k]){
+        b.classList.add('used');
+      }
+    });
+  }
+
+  /* ============ ENTRADA ============ */
+  function handleKey(k){
+    if(state.finished) return;
+    if(k==='ENTER'){ submitGuess(); return; }
+    if(k==='⌫'){ current = current.slice(0,-1); render(); return; }
+    if(current.length < WORD_LEN){
+      current += k;
+      render();
+    }
+  }
+  document.addEventListener('keydown', function(e){
+    if(document.querySelector('.overlay.open')) return;
+    var k = e.key.toLowerCase();
+    if(k==='enter'){ handleKey('ENTER'); return; }
+    if(k==='backspace'){ handleKey('⌫'); return; }
+    if(k==='ç' || /^[a-z]$/.test(k)){ handleKey(k); }
+  });
+
+  function submitGuess(){
+    if(current.length < WORD_LEN){
+      toast('Faltam letras'); shakeRow(); return;
+    }
+    if(!WORDSET[current]){
+      toast('Não está na lista'); shakeRow(); return;
+    }
+    var status = evaluate(current, state.secret);
+    var tally = {g:0,y:0,r:0};
+    status.forEach(function(s){
+      if(s==='correct') tally.g++; else if(s==='present') tally.y++; else tally.r++;
+    });
+    state.guesses.push(current);
+    state.statuses.push(status);
+    state.tallies.push(tally);
+    var rowIdx = state.guesses.length-1;
+    var won = current === state.secret;
+    current = '';
+
+    // se nenhuma das 5 letras existe na palavra, não há nada a deduzir —
+    // pinta a linha inteira de vermelho automaticamente (o oposto do acerto)
+    if(tally.r === WORD_LEN){
+      state.paint[rowIdx] = new Array(WORD_LEN).fill(1);
+    }
+
+    var justFinished = false;
+    if(won){ state.won = true; state.finished = true; justFinished = true; revealAllPaint(); }
+    else if(state.guesses.length >= MAX_TRIES){ state.finished = true; justFinished = true; }
+    if(!practiceMode) save('game:'+diff, state);
+
+    render();
+    var rowEl = document.getElementById('row-'+rowIdx);
+    if(rowEl){
+      rowEl.classList.add('pop');
+      setTimeout(function(){ rowEl.classList.remove('pop'); }, 300);
+    }
+    if(justFinished){
+      setTimeout(function(){
+        if(won && rowEl) rowEl.classList.add('bounce');
+        finishGame();
+        openEndModal();
+      }, 500);
+    }
+  }
+
+  function shakeRow(){
+    var row = document.getElementById('row-'+state.guesses.length);
+    if(!row) return;
+    row.classList.add('shake');
+    setTimeout(function(){ row.classList.remove('shake'); }, 350);
+  }
+
+  /* ============ ESTATÍSTICAS ============ */
+  function statsKey(){ return 'stats:'+diff; }
+  function getStats(){
+    return load(statsKey(), {played:0, wins:0, streak:0, maxStreak:0, dist:[0,0,0,0,0,0,0,0]});
+  }
+  function finishGame(){
+    if(!practiceMode) save('game:'+diff, state);
+    if(!practiceMode){
+      var st = getStats();
+      var lastDay = load('laststatday:'+diff, null);
+      if(lastDay !== state.dayNum){
+        st.played += 1;
+        if(state.won){
+          st.wins += 1;
+          st.streak += 1;
+          if(st.streak > st.maxStreak) st.maxStreak = st.streak;
+          st.dist[state.guesses.length-1] += 1;
+        } else {
+          st.streak = 0;
+        }
+        save(statsKey(), st);
+        save('laststatday:'+diff, state.dayNum);
+      }
+    }
+    render();
+  }
+
+  function fillStats(prefix, showShare){
+    var st = getStats();
+    var pct = st.played ? Math.round(100*st.wins/st.played) : 0;
+    document.getElementById(prefix+'-played').textContent = st.played;
+    document.getElementById(prefix+'-winpct').textContent = pct+'%';
+    document.getElementById(prefix+'-streak').textContent = st.streak;
+    document.getElementById(prefix+'-maxstreak').textContent = st.maxStreak;
+    var distEl = document.getElementById(prefix+'-dist');
+    distEl.innerHTML='';
+    var maxD = Math.max.apply(null, st.dist.concat([1]));
+    for(var i=0;i<8;i++){
+      var r = document.createElement('div');
+      r.className = 'dist-row' + ((state && state.won && state.guesses.length-1===i)?' win':'');
+      var n = document.createElement('div'); n.className='n'; n.textContent=(i+1);
+      var wrap = document.createElement('div'); wrap.className='bar-wrap';
+      var bar = document.createElement('div'); bar.className='bar';
+      var w = st.dist[i] ? Math.max(10, Math.round(100*st.dist[i]/maxD)) : 6;
+      bar.style.width = w+'%';
+      bar.textContent = st.dist[i];
+      wrap.appendChild(bar);
+      r.appendChild(n); r.appendChild(wrap);
+      distEl.appendChild(r);
+    }
+  }
+
+  /* ============ COMPARTILHAR ============ */
+  function shareText(){
+    var emojiMap = {correct:'🟩', present:'🟨', absent:'⬛'};
+    var lines = ['QUINHENTÃO #'+state.dayNum+(state.won?' '+state.guesses.length+'/8':' X/8')];
+    for(var i=0;i<state.statuses.length;i++){
+      lines.push(state.statuses[i].map(function(s){return emojiMap[s];}).join(''));
+    }
+    return lines.join('\n');
+  }
+  function doShare(){
+    var text = shareText();
+    if(navigator.share){
+      navigator.share({text:text}).catch(function(){});
+    } else if(navigator.clipboard){
+      navigator.clipboard.writeText(text).then(function(){ toast('Copiado!'); });
+    } else {
+      toast('Copie: '+text);
+    }
+  }
+
+  /* ============ COUNTDOWN ============ */
+  function nextMidnight(){
+    var n = new Date(); n.setHours(24,0,0,0); return n;
+  }
+  var countdownTimer = null;
+  function startCountdown(el){
+    if(countdownTimer) clearInterval(countdownTimer);
+    function tick(){
+      var diffMs = nextMidnight().getTime() - Date.now();
+      if(diffMs<0) diffMs=0;
+      var h = Math.floor(diffMs/3600000);
+      var m = Math.floor((diffMs%3600000)/60000);
+      var s = Math.floor((diffMs%60000)/1000);
+      el.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+    }
+    function pad(n){ return (n<10?'0':'')+n; }
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+
+  /* ============ MODAIS ============ */
+  function openModal(id){ document.getElementById(id).classList.add('open'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+  document.querySelectorAll('[data-close]').forEach(function(b){
+    b.addEventListener('click', function(){ closeModal(this.dataset.close); });
+  });
+  document.querySelectorAll('.overlay').forEach(function(o){
+    o.addEventListener('click', function(e){ if(e.target===o) closeModal(o.id); });
+  });
+
+  document.getElementById('btn-stats').addEventListener('click', function(){
+    fillStats('s');
+    var shareRow = document.getElementById('s-share-row');
+    var cd = document.getElementById('s-countdown');
+    if(state.finished && !practiceMode){
+      shareRow.style.display='flex';
+      cd.style.display='block';
+      startCountdown(document.getElementById('countdown-time'));
+    } else {
+      shareRow.style.display='none'; cd.style.display='none';
+    }
+    openModal('overlay-stats');
+  });
+  document.getElementById('btn-share').addEventListener('click', doShare);
+  document.getElementById('btn-share2').addEventListener('click', doShare);
+  document.getElementById('btn-settings').addEventListener('click', function(){ openModal('overlay-settings'); });
+  document.getElementById('btn-help').addEventListener('click', function(){ closeModal('overlay-settings'); openModal('overlay-help'); });
+  document.getElementById('btn-restart').addEventListener('click', function(){
+    closeModal('overlay-settings');
+    current='';
+    state = {diff:diff, practice:practiceMode, secret:state.secret, dayNum:state.dayNum, guesses:[], statuses:[], tallies:[], paint:makeEmptyPaint(), finished:false, won:false};
+    if(!practiceMode) save('game:'+diff, state);
+    render();
+  });
+
+  function openEndModal(){
+    fillStats('e');
+    document.getElementById('end-title').textContent = state.won ? winTitle(state.guesses.length) : 'Não foi dessa vez';
+    document.getElementById('end-sub').textContent = state.won
+      ? 'Você acertou em '+state.guesses.length+' tentativa'+(state.guesses.length>1?'s':'')+'.'
+      : 'A palavra era "'+state.secret.toUpperCase()+'".';
+    var cd = document.getElementById('e-countdown');
+    if(!practiceMode){ cd.style.display='block'; startCountdown(document.getElementById('countdown-time2')); }
+    else { cd.style.display='none'; }
+    openModal('overlay-end');
+  }
+  function winTitle(n){
+    var titles = ['Mandou muito bem!','Excelente!','Ótimo!','Muito bom!','Bom trabalho!','Foi por pouco!','Ufa, quase!','Raspou!'];
+    return titles[Math.min(n-1, titles.length-1)];
+  }
+
+  /* ============ MODO ============ */
+  document.getElementById('mode-switch').addEventListener('click', function(){
+    current='';
+    newGame(!practiceMode);
+  });
+
+  /* ============ TEMA ============ */
+  function applyTheme(t){
+    if(t==='auto'){ document.documentElement.removeAttribute('data-theme'); }
+    else { document.documentElement.setAttribute('data-theme', t); }
+    document.querySelectorAll('#theme-seg button').forEach(function(b){
+      b.classList.toggle('active', b.dataset.theme===t);
+    });
+  }
+  document.querySelectorAll('#theme-seg button').forEach(function(b){
+    b.addEventListener('click', function(){
+      theme = this.dataset.theme; save('theme', theme); applyTheme(theme);
+    });
+  });
+  applyTheme(theme);
+
+  /* ============ TOAST ============ */
+  function toast(msg){
+    var wrap = document.getElementById('toast-wrap');
+    var t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+    wrap.appendChild(t);
+    setTimeout(function(){ t.remove(); }, 1600);
+  }
+
+  /* ============ INIT ============ */
+  newGame(practiceMode);
+
+  // primeira visita: mostra "como jogar"
+  if(!load('seen-help', false)){
+    save('seen-help', true);
+    setTimeout(function(){ openModal('overlay-help'); }, 400);
+  }
+
+})();
+</script>
+</body>
+</html>
