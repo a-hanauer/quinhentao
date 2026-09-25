@@ -152,6 +152,16 @@ header{
   transition:transform .1s ease, background .12s ease, border-color .12s ease;
 }
 .tile.filled{border-color:var(--ink-dim);}
+.tile.active-row{cursor:pointer;}
+.tile.cursor{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.tile.cursor:empty::after{
+  content:'';width:2px;height:46%;background:var(--accent);border-radius:2px;
+  animation:caret 1.05s steps(1,end) infinite;
+}
+@keyframes caret{0%,49%{opacity:1;}50%,100%{opacity:0;}}
 .tile.paintable{cursor:pointer;}
 .tile.paintable:active{transform:scale(0.93);}
 .tile.correct{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
@@ -352,6 +362,7 @@ header{
     <p>O teclado se pinta sozinho seguindo suas marcações. Vermelho é definitivo — a letra some do jogo, então marcar uma ocorrência como vermelha já pinta todas as outras aparições dela e a tecla correspondente. Verde e amarelo dependem da posição, então se a mesma letra já foi marcada das duas formas em palpites diferentes, a tecla aparece pintada meio a meio — e, nesse caso, ela nunca vira vermelha, já que você já sabe que ela existe na palavra.</p>
     <p>Se um palpite não tiver nenhuma letra certa (nem verde, nem amarela), o jogo já pinta a linha inteira de vermelho pra você — não tem o que deduzir ali.</p>
     <p>Errou uma pintura? Toque de novo na ficha até voltar ao neutro, ou use o botão 🧹 no teclado pra limpar todas as cores de uma vez — sem perder seus palpites.</p>
+    <p>Na linha que você está digitando dá pra escrever fora de ordem: toque numa ficha pra levar o cursor até ela e digite. Também dá pra navegar com <b>Tab</b> / <b>Shift+Tab</b> ou com as setas.</p>
     <p>A palavra secreta nunca repete letras (e não usa K, W ou Y — as menos comuns no português), mas seu palpite pode ser qualquer palavra válida de 5 letras.</p>
   </div>
 </div>
@@ -524,6 +535,7 @@ header{
       };
       if(!practiceMode) save('game:'+diff, state);
     }
+    clearCurrent();
     render();
     if(state.finished && !practiceMode){
       setTimeout(function(){ openEndModal(); }, 300);
@@ -558,7 +570,17 @@ header{
 
   /* ============ RENDER TABULEIRO ============ */
   var boardEl = document.getElementById('board');
-  var current = ''; // linha em digitação
+  // linha em digitação: array de 5 posições, cada uma vazia ou com uma letra.
+  // isso permite preencher fora de ordem (ex: escrever a 3ª letra primeiro).
+  var current = ['','','','',''];
+  var cursor = 0; // ficha ativa da linha em digitação
+
+  function currentWord(){ return current.join(''); }
+  function currentFilled(){
+    for(var i=0;i<WORD_LEN;i++){ if(!current[i]) return false; }
+    return true;
+  }
+  function clearCurrent(){ current = ['','','','','']; cursor = 0; }
 
   function buildBoard(){
     boardEl.innerHTML = '';
@@ -568,7 +590,15 @@ header{
       for(let c=0;c<WORD_LEN;c++){
         let t = document.createElement('div');
         t.className='tile'; t.id='tile-'+r+'-'+c;
-        t.addEventListener('click', function(){ paintTile(r,c); });
+        t.addEventListener('click', function(){
+          if(r === state.guesses.length && !state.finished){
+            // linha ativa: clicar move o cursor pra essa ficha
+            cursor = c;
+            render();
+          } else {
+            paintTile(r,c);
+          }
+        });
         row.appendChild(t);
       }
       ['g','y','r'].forEach(function(type){
@@ -673,6 +703,7 @@ header{
   }
 
   function render(){
+    var activeRow = state.guesses.length;
     for(var r=0;r<MAX_TRIES;r++){
       var submitted = r < state.guesses.length;
       var word = submitted ? state.guesses[r] : null;
@@ -682,9 +713,12 @@ header{
           t.textContent = word[c];
           var p = effectivePaint(r,c);
           t.className = 'tile filled paintable ' + paintClass(p);
-        } else if(r===state.guesses.length && c<current.length){
-          t.textContent = current[c];
-          t.className = 'tile filled';
+        } else if(r===activeRow && !state.finished){
+          t.textContent = current[c] || '';
+          var cls = 'tile active-row';
+          if(current[c]) cls += ' filled';
+          if(c === cursor) cls += ' cursor';
+          t.className = cls;
         } else {
           t.textContent = '';
           t.className = 'tile';
@@ -771,41 +805,77 @@ header{
   }
 
   /* ============ ENTRADA ============ */
+  // move o cursor, opcionalmente pulando fichas já preenchidas
+  function moveCursor(delta, skipFilled){
+    var c = cursor;
+    for(var i=0;i<WORD_LEN;i++){
+      c = (c + delta + WORD_LEN) % WORD_LEN;
+      if(!skipFilled || !current[c]){ cursor = c; return; }
+    }
+    cursor = (cursor + delta + WORD_LEN) % WORD_LEN;
+  }
+
   function handleKey(k){
     if(state.finished) return;
     if(k==='ENTER'){ submitGuess(); return; }
-    if(k==='⌫'){ current = current.slice(0,-1); render(); return; }
-    if(current.length < WORD_LEN){
-      current += k;
+    if(k==='⌫'){
+      if(current[cursor]){
+        // apaga a ficha onde o cursor está
+        current[cursor] = '';
+      } else {
+        // ficha vazia: volta uma casa e apaga lá
+        moveCursor(-1, false);
+        current[cursor] = '';
+      }
       render();
+      return;
     }
+    // digita na posição do cursor (mesmo que fichas anteriores estejam vazias)
+    current[cursor] = k;
+    // pula pra próxima ficha vazia; se não houver, só anda uma casa
+    if(!currentFilled()) moveCursor(1, true); else moveCursor(1, false);
+    render();
   }
+
   document.addEventListener('keydown', function(e){
     if(document.querySelector('.overlay.open')) return;
+    if(state.finished) return;
     var k = e.key.toLowerCase();
     if(k==='enter'){ handleKey('ENTER'); return; }
-    if(k==='backspace'){ handleKey('⌫'); return; }
+    if(k==='backspace'){ e.preventDefault(); handleKey('⌫'); return; }
+    if(e.key==='Tab'){
+      e.preventDefault();
+      moveCursor(e.shiftKey ? -1 : 1, false);
+      render();
+      return;
+    }
+    if(k==='arrowleft'){ e.preventDefault(); moveCursor(-1,false); render(); return; }
+    if(k==='arrowright'){ e.preventDefault(); moveCursor(1,false); render(); return; }
+    if(k==='home'){ e.preventDefault(); cursor = 0; render(); return; }
+    if(k==='end'){ e.preventDefault(); cursor = WORD_LEN-1; render(); return; }
+    if(k==='delete'){ e.preventDefault(); current[cursor]=''; render(); return; }
     if(k==='ç' || /^[a-z]$/.test(k)){ handleKey(k); }
   });
 
   function submitGuess(){
-    if(current.length < WORD_LEN){
+    if(!currentFilled()){
       toast('Faltam letras'); shakeRow(); return;
     }
-    if(!WORDSET[current]){
+    var guess = currentWord();
+    if(!WORDSET[guess]){
       toast('Não está na lista'); shakeRow(); return;
     }
-    var status = evaluate(current, state.secret);
+    var status = evaluate(guess, state.secret);
     var tally = {g:0,y:0,r:0};
     status.forEach(function(s){
       if(s==='correct') tally.g++; else if(s==='present') tally.y++; else tally.r++;
     });
-    state.guesses.push(current);
+    state.guesses.push(guess);
     state.statuses.push(status);
     state.tallies.push(tally);
     var rowIdx = state.guesses.length-1;
-    var won = current === state.secret;
-    current = '';
+    var won = guess === state.secret;
+    clearCurrent();
 
     // se nenhuma das 5 letras existe na palavra, não há nada a deduzir —
     // pinta a linha inteira de vermelho automaticamente (o oposto do acerto).
@@ -967,7 +1037,7 @@ header{
   document.getElementById('btn-help').addEventListener('click', function(){ closeModal('overlay-settings'); openModal('overlay-help'); });
   document.getElementById('btn-restart').addEventListener('click', function(){
     closeModal('overlay-settings');
-    current='';
+    clearCurrent();
     state = {diff:diff, practice:practiceMode, secret:state.secret, dayNum:state.dayNum, guesses:[], statuses:[], tallies:[], paint:makeEmptyPaint(), finished:false, won:false};
     if(!practiceMode) save('game:'+diff, state);
     render();
@@ -991,7 +1061,7 @@ header{
 
   /* ============ MODO ============ */
   document.getElementById('mode-switch').addEventListener('click', function(){
-    current='';
+    clearCurrent();
     newGame(!practiceMode);
   });
 
