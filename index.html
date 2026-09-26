@@ -87,6 +87,16 @@ body{
   display:flex;
   flex-direction:column;
   min-height:100%;
+  /* toques rápidos repetidos não devem dar zoom (o pinça-pra-ampliar segue funcionando) */
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+/* elementos que o jogador martela: além de não dar zoom, não selecionam texto */
+.tile,.count-cell,.key,.iconbtn,.switch,.btn,.seg button,.linkbtn,.modal .close{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;
+  user-select:none;
 }
 .app{
   max-width:520px;
