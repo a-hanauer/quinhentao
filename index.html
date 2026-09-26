@@ -871,14 +871,25 @@ header{
       render();
       return;
     }
-    // digita na posição do cursor (mesmo que fichas anteriores estejam vazias)
-    current[cursor] = k;
+    // digita na posição do cursor (mesmo que fichas anteriores estejam vazias).
+    // letraBase garante que "ç"/"á"/"ã" entrem como "c"/"a"/"a".
+    current[cursor] = letraBase(k);
     if(!currentFilled()){
       moveCursor(1, true);           // pula pra próxima ficha ainda vazia
     } else if(cursor < WORD_LEN-1){
       cursor += 1;                    // linha cheia: anda uma casa e para na última
     }
     render();
+  }
+
+  // O dicionário vive todo sem acento e sem cedilha, e o teclado da tela só
+  // oferece letras simples. Mas num teclado físico o jogador pode muito bem
+  // digitar "ç", "á" ou "ã" — então reduzimos qualquer letra à forma básica.
+  // A decomposição NFD separa a letra do acento; aí é só descartar os acentos
+  // (a cedilha do "ç" também é um deles).
+  function letraBase(ch){
+    if(!ch) return '';
+    return ch.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   }
 
   document.addEventListener('keydown', function(e){
@@ -898,8 +909,9 @@ header{
     if(k==='home'){ e.preventDefault(); cursor = 0; render(); return; }
     if(k==='end'){ e.preventDefault(); cursor = WORD_LEN-1; render(); return; }
     if(k==='delete'){ e.preventDefault(); current[cursor]=''; render(); return; }
-    if(k==='ç'){ handleKey('c'); return; }   // teclado físico: ç vira c
-    if(/^[a-z]$/.test(k)){ handleKey(k); }
+    if(e.key.length !== 1) return;            // teclas especiais (Shift, Dead, F1…)
+    var letra = letraBase(e.key);
+    if(/^[a-z]$/.test(letra)){ handleKey(letra); }
   });
 
   function submitGuess(){
