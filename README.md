@@ -2,7 +2,7 @@
 
 Um jogo diário de adivinhar palavras de 5 letras, em português brasileiro.
 
-**Jogue:** https://a-hanauer.github.io/quinhentao/
+**Jogue:** https://a-hanauer.github.io/500
 
 A diferença para os jogos do gênero: o Quinhentos **não diz quais letras você acertou — só quantas**. Deduzir quais é problema seu.
 
