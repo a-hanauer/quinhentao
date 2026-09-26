@@ -98,6 +98,10 @@ body{
   -webkit-user-select:none;
   user-select:none;
 }
+/* contêineres também, pra um toque duplo no vão entre as fichas não ampliar */
+.app,header,.board-wrap,.board,.row,.keyboard,.krow,.brand,.header-actions{
+  touch-action:manipulation;
+}
 .app{
   max-width:520px;
   margin:0 auto;
@@ -578,6 +582,22 @@ header{
     return result;
   }
 
+  /* ============ TOQUE ============ */
+  // No celular, dois toques rápidos no mesmo ponto fazem o navegador dar zoom.
+  // Só o CSS (touch-action) não resolve em alguns navegadores embutidos, então
+  // tratamos o toque no touchstart e cancelamos o comportamento padrão — o que
+  // também evita o clique sintético, sem disparar a ação duas vezes.
+  // Toques repetidos seguem funcionando (digitar a mesma letra, pintar fichas).
+  function onTap(el, fn){
+    el.addEventListener('touchstart', function(e){
+      e.preventDefault();
+      fn.call(el, e);
+    }, {passive:false});
+    el.addEventListener('click', function(e){
+      fn.call(el, e);
+    });
+  }
+
   /* ============ RENDER TABULEIRO ============ */
   var boardEl = document.getElementById('board');
   // linha em digitação: array de 5 posições, cada uma vazia ou com uma letra.
@@ -600,9 +620,9 @@ header{
       for(let c=0;c<WORD_LEN;c++){
         let t = document.createElement('div');
         t.className='tile'; t.id='tile-'+r+'-'+c;
-        t.addEventListener('click', function(){
+        onTap(t, function(){
           if(r === state.guesses.length && !state.finished){
-            // linha ativa: clicar move o cursor pra essa ficha
+            // linha ativa: tocar move o cursor pra essa ficha
             cursor = c;
             render();
           } else {
@@ -764,7 +784,7 @@ header{
         b.className = 'key'+(k==='ENTER'?' enter':(k==='⌫'?' del':''));
         b.textContent = k==='ENTER' ? 'ENTER' : k;
         b.dataset.key = k;
-        b.addEventListener('click', function(){ handleKey(this.dataset.key); });
+        onTap(b, function(){ handleKey(this.dataset.key); });
         row.appendChild(b);
       });
       kbEl.appendChild(row);
@@ -774,7 +794,7 @@ header{
     var wipeBtn = document.createElement('button');
     wipeBtn.className = 'key wipe';
     wipeBtn.innerHTML = '🧹 <span>Limpar cores</span>';
-    wipeBtn.addEventListener('click', function(){ clearAllPaint(); toast('Cores limpas'); });
+    onTap(wipeBtn, function(){ clearAllPaint(); toast('Cores limpas'); });
     wipeRow.appendChild(wipeBtn);
     kbEl.appendChild(wipeRow);
   }
@@ -832,9 +852,9 @@ header{
       if(current[cursor]){
         // apaga a ficha onde o cursor está
         current[cursor] = '';
-      } else {
-        // ficha vazia: volta uma casa e apaga lá
-        moveCursor(-1, false);
+      } else if(cursor > 0){
+        // ficha vazia: volta uma casa e apaga lá (sem dar a volta pro fim da linha)
+        cursor -= 1;
         current[cursor] = '';
       }
       render();
@@ -842,8 +862,11 @@ header{
     }
     // digita na posição do cursor (mesmo que fichas anteriores estejam vazias)
     current[cursor] = k;
-    // pula pra próxima ficha vazia; se não houver, só anda uma casa
-    if(!currentFilled()) moveCursor(1, true); else moveCursor(1, false);
+    if(!currentFilled()){
+      moveCursor(1, true);           // pula pra próxima ficha ainda vazia
+    } else if(cursor < WORD_LEN-1){
+      cursor += 1;                    // linha cheia: anda uma casa e para na última
+    }
     render();
   }
 
@@ -1028,7 +1051,7 @@ header{
     o.addEventListener('click', function(e){ if(e.target===o) closeModal(o.id); });
   });
 
-  document.getElementById('btn-stats').addEventListener('click', function(){
+  onTap(document.getElementById('btn-stats'), function(){
     fillStats('s');
     var shareRow = document.getElementById('s-share-row');
     var cd = document.getElementById('s-countdown');
@@ -1043,7 +1066,7 @@ header{
   });
   document.getElementById('btn-share').addEventListener('click', doShare);
   document.getElementById('btn-share2').addEventListener('click', doShare);
-  document.getElementById('btn-settings').addEventListener('click', function(){ openModal('overlay-settings'); });
+  onTap(document.getElementById('btn-settings'), function(){ openModal('overlay-settings'); });
   document.getElementById('btn-help').addEventListener('click', function(){ closeModal('overlay-settings'); openModal('overlay-help'); });
   document.getElementById('btn-restart').addEventListener('click', function(){
     closeModal('overlay-settings');
@@ -1070,7 +1093,7 @@ header{
   }
 
   /* ============ MODO ============ */
-  document.getElementById('mode-switch').addEventListener('click', function(){
+  onTap(document.getElementById('mode-switch'), function(){
     clearCurrent();
     newGame(!practiceMode);
   });
